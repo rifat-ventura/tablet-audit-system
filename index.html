@@ -143,14 +143,14 @@
     <datalist id="retList"></datalist>
     <div id="retInfo" class="hint"></div>
     <label>Return status</label>
-    <select id="retStatus">
-      <option value="Damaged - Held by Me (Not Given to IT)">Damaged - Held by Me (Not Given to IT)</option>
-      <option value="Sent to IT Repair">Sent to IT Repair</option>
-      <option value="Available">Available</option>
+        <select id="retStatus">
+      <option value="No Ok In Hand">No Ok In Hand</option>
+      <option value="IT for Repair">IT for Repair</option>
+      <option value="Okay In Hand">Okay In Hand</option>
     </select>
     <label>Return remarks</label>
     <input id="retRemarks" placeholder="Describe the problem">
-    <h4>2. Replacement tablet (from Available list)</h4>
+    <h4>2. Replacement tablet (from "Okay In Hand" list)</h4>
     <select id="retNewSerial"></select>
     <div class="hint">The replacement is given to the same user who held the returned tablet. Leave empty to only return.</div>
     <button class="btn-warn" onclick="submitReturn(this)">Confirm Return &amp; Replace</button>
@@ -179,12 +179,12 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxlpQp3uanUalZX6FGBYYpb
 /* ========================================================================== */
 
 const UNASSIGNED = 'UNASSIGNED';
-const STATUS_LIST = ['Running', 'Available', 'Sent to IT Repair', 'Damaged - Held by Me (Not Given to IT)'];
+const STATUS_LIST = ['Running', 'Okay In Hand', 'No Ok In Hand', 'IT for Repair'];
 const RECON_OPTIONS = [
   { v: 'Running', l: 'Running - Audited OK (keep user)' },
-  { v: 'Available', l: 'Good spare - not assigned to anyone' },
-  { v: 'Sent to IT Repair', l: 'Sent to IT for repair' },
-  { v: 'Damaged - Held by Me (Not Given to IT)', l: 'Damaged - held by me (not given to IT)' }
+  { v: 'Okay In Hand', l: 'Okay In Hand - good spare, not assigned' },
+  { v: 'No Ok In Hand', l: 'No Ok In Hand - damaged, held by me' },
+  { v: 'IT for Repair', l: 'IT for Repair - sent to IT' }
 ];
 
 const $ = function (id) { return document.getElementById(id); };
@@ -267,10 +267,12 @@ async function showPublic() {
       $('publicBody').innerHTML = '<p>Serial <b>' + esc(serialParam) + '</b> was not found.</p>';
       return;
     }
+        const prow = function (k, v) {
+      return '<div class="prow"><span class="plabel">' + k + '</span><span class="pval">' + esc(v || '-') + '</span></div>';
+    };
     $('publicBody').innerHTML =
-      '<div class="prow"><span class="plabel">Name with ID</span><span class="pval">' + esc(r.nameWithId) + '</span></div>' +
-      '<div class="prow"><span class="plabel">Floor</span><span class="pval">' + esc(r.floor) + '</span></div>' +
-      '<div class="prow"><span class="plabel">Name</span><span class="pval">' + esc(r.name) + '</span></div>';
+      prow('Name with ID', r.nameWithId) + prow('Name', r.name) + prow('Floor', r.floor) +
+      prow('Line', r.line) + prow('Serial', r.serial) + prow('Tab Size', r.tabSize);
   } catch (e) {
     $('publicBody').innerHTML = '<p>Could not load information. Please check your internet and reload.</p>';
   }
@@ -324,7 +326,7 @@ function renderAll() {
   }).join('');
 
   $('retNewSerial').innerHTML = '<option value="">-- No replacement (return only) --</option>' +
-    APP.tablets.filter(function (t) { return t.status === 'Available'; }).map(function (t) {
+    APP.tablets.filter(function (t) { return t.status === 'Okay In Hand'; }).map(function (t) {
       return '<option value="' + esc(t.serial) + '">' + esc(t.serial + (t.tabSize ? ' (' + t.tabSize + ')' : '')) + '</option>';
     }).join('');
 
