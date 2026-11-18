@@ -43,11 +43,16 @@
   th { background: #f8fafc; }
   #reader { width: 100%; max-width: 360px; margin: 10px auto; display: none; }
   #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 12px 16px; border-radius: 8px; display: none; z-index: 999; max-width: 90%; font-size: 14px; }
-  .label-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
-  .label { border: 1px dashed #94a3b8; border-radius: 6px; padding: 8px; text-align: center; background: #fff; }
+    :root { --qr: 20mm; }
+  @page { size: A4; margin: 8mm; }
+  .label-grid { display: flex; flex-wrap: wrap; gap: 2mm; margin-top: 10px; }
+  .label { width: calc(var(--qr) + 4mm); border: 1px dashed #94a3b8; padding: 2mm; text-align: center; background: #fff; break-inside: avoid; }
   .qr { display: flex; justify-content: center; }
-  .qr img, .qr canvas { max-width: 100%; }
-  .serial { font-family: monospace; font-weight: bold; font-size: 13px; margin-top: 6px; word-break: break-all; }
+  .qr img, .qr canvas { width: var(--qr) !important; height: var(--qr) !important; }
+  .serial { font-family: monospace; font-weight: bold; font-size: 6.5pt; margin-top: 1mm; word-break: break-all; line-height: 1.1; }
+  .pick-list { max-height: 220px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px; margin-bottom: 10px; }
+  .pick-item { display: flex; gap: 8px; align-items: center; padding: 4px 2px; font-size: 13px; font-weight: normal; cursor: pointer; }
+  .pick-item input { width: auto; margin: 0; }
   .card { background: #fff; border-radius: 12px; padding: 24px; max-width: 400px; margin: 30px auto; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
   .badge { display: inline-block; background: #e0f2fe; color: #0369a1; font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 20px; margin-bottom: 12px; }
   .prow { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #e5e7eb; }
@@ -124,14 +129,27 @@
     </div>
   </div>
 
-  <!-- PRINT QR LABELS -->
+    <!-- PRINT QR LABELS -->
   <div id="printTab" class="panel">
     <div class="noprint">
       <div class="row">
-        <input id="labelFilter" placeholder="Filter by Serial or Name (optional)" oninput="renderLabels()">
-        <button class="btn-primary" onclick="window.print()">Print Labels</button>
+        <input id="labelFilter" placeholder="Search by Serial or Name" oninput="renderPickList()">
+        <select id="qrSize" onchange="drawLabels()" style="width:auto; margin:0;">
+          <option value="18">QR size 18 mm</option>
+          <option value="20" selected>QR size 20 mm</option>
+          <option value="22">QR size 22 mm</option>
+          <option value="26">QR size 26 mm</option>
+          <option value="30">QR size 30 mm</option>
+        </select>
       </div>
-      <div class="hint"><span id="labelCount">0 labels</span> | QR links to: <span id="baseUrlText"></span></div>
+      <div class="row">
+        <button class="btn-sec small" onclick="selectShown(true)">Select all shown</button>
+        <button class="btn-sec small" onclick="selectShown(false)">Unselect shown</button>
+        <button class="btn-sec small" onclick="clearSelection()">Clear all</button>
+        <button class="btn-primary" onclick="printLabels()">Print selected labels</button>
+      </div>
+      <div class="hint"><span id="pickCount">0 selected</span> | <span id="labelCount"></span> | QR opens: <span id="baseUrlText"></span></div>
+      <div id="pickList" class="pick-list"></div>
     </div>
     <div id="labelGrid" class="label-grid"></div>
   </div>
@@ -248,7 +266,8 @@ function baseUrl() {
 }
 
 /* ---------- Start ---------- */
-const serialParam = (new URLSearchParams(location.search).get('serial') || '').trim();
+const qsParams = new URLSearchParams(location.search);
+const serialParam = (qsParams.get('s') || qsParams.get('serial') || '').trim();
 if (API_URL.indexOf('PASTE_') === 0) {
   document.body.innerHTML = '<div class="card"><h3>Setup needed</h3><p>Open index.html and paste your Apps Script /exec URL into API_URL.</p></div>';
 } else if (serialParam) {
@@ -463,7 +482,7 @@ function onScan(text) {
   let s = String(text).trim();
   try {
     const u = new URL(s);
-    const p = u.searchParams.get('serial');
+    const p = u.searchParams.get('s') || u.searchParams.get('serial');
     if (p) s = p.trim();
   } catch (e) {}
   stopCamera();
@@ -471,15 +490,60 @@ function onScan(text) {
   searchNow();
 }
 
-/* ---------- Print QR labels ---------- */
+const SELECTED = new Set();
+
+function matchesFilter(t, q) {
+  return !q || t.serial.toLowerCase().indexOf(q) >= 0 || t.nameWithId.toLowerCase().indexOf(q) >= 0;
+}
+
 function renderLabels() {
+  renderPickList();
+  drawLabels();
+}
+
+function renderPickList() {
   const q = $('labelFilter').value.trim().toLowerCase();
-  const list = APP.tablets.filter(function (t) {
-    return !q || t.serial.toLowerCase().indexOf(q) >= 0 || t.nameWithId.toLowerCase().indexOf(q) >= 0;
+  const list = APP.tablets.filter(function (t) { return matchesFilter(t, q); });
+  $('pickList').innerHTML = list.length ? list.map(function (t) {
+    return '<label class="pick-item"><input type="checkbox" data-serial="' + esc(t.serial) + '"' +
+      (SELECTED.has(t.serial) ? ' checked' : '') + ' onchange="togglePick(this.dataset.serial, this.checked)">' +
+      '<span><b>' + esc(t.serial) + '</b> - ' + esc(t.nameWithId) + '</span></label>';
+  }).join('') : '<div class="hint">No tablets match.</div>';
+  $('pickCount').textContent = SELECTED.size + ' selected';
+  $('labelCount').textContent = list.length + ' shown';
+}
+
+function togglePick(serial, on) {
+  if (on) SELECTED.add(serial); else SELECTED.delete(serial);
+  $('pickCount').textContent = SELECTED.size + ' selected';
+  drawLabels();
+}
+
+function selectShown(on) {
+  const q = $('labelFilter').value.trim().toLowerCase();
+  APP.tablets.forEach(function (t) {
+    if (matchesFilter(t, q)) { if (on) SELECTED.add(t.serial); else SELECTED.delete(t.serial); }
   });
+  renderPickList();
+  drawLabels();
+}
+
+function clearSelection() {
+  SELECTED.clear();
+  renderPickList();
+  drawLabels();
+}
+
+function printLabels() {
+  if (!SELECTED.size) { toast('Select at least one tablet first.'); return; }
+  window.print();
+}
+
+function drawLabels() {
+  document.documentElement.style.setProperty('--qr', $('qrSize').value + 'mm');
+  const list = APP.tablets.filter(function (t) { return SELECTED.has(t.serial); });
   const box = $('labelGrid');
   box.innerHTML = '';
-  $('labelCount').textContent = list.length + ' labels';
   const base = baseUrl();
   const token = ++labelToken;
   let i = 0;
@@ -498,7 +562,7 @@ function renderLabels() {
       d.appendChild(qr);
       d.appendChild(s);
       box.appendChild(d);
-      new QRCode(qr, { text: base + '?serial=' + encodeURIComponent(t.serial), width: 120, height: 120, correctLevel: QRCode.CorrectLevel.M });
+      new QRCode(qr, { text: base + '?s=' + encodeURIComponent(t.serial), width: 200, height: 200, correctLevel: QRCode.CorrectLevel.L });
     }
     if (i < list.length) setTimeout(batch, 10);
   }
