@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f8fafc; margin: 0; padding: 14px; color: #0f172a; }
+    .container { max-width: 760px; margin: 0 auto; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .tab-btn { flex: 1; padding: 10px; border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    .tab-btn.active { background: #0f172a; color: #fff; border-color: #0f172a; }
+    .panel { display: none; background: #fff; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 14px; }
+    .panel.active { display: block; }
+    .row-flex { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    input, select, textarea { width: 100%; padding: 9px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; margin-top: 4px; margin-bottom: 10px; }
+    button { padding: 9px 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-ok { background: #16a34a; color: #fff; }
+    .btn-warn { background: #d97706; color: #fff; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-sec { background: #e2e8f0; color: #0f172a; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; background: #f1f5f9; padding: 12px; border-radius: 8px; margin: 10px 0; }
+    .alert-warn { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px; border-radius: 8px; margin: 10px 0; }
+    .toast { position: fixed; bottom: 16px; right: 16px; background: #0f172a; color: #fff; padding: 12px 16px; border-radius: 8px; display: none; z-index: 999; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+    th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
+    th { background: #f8fafc; }
+    #reader { width: 100%; max-width: 360px; margin: 10px auto; display: none; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h3>Tablet Monthly Audit System (<?= initialSerial ? initialSerial : 'Ready' ?>)</h3>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('scanTab', this)">Scan / Search</button>
+    <button class="tab-btn" onclick="switchTab('returnTab', this)">Return & Replace</button>
+    <button class="tab-btn" onclick="switchTab('reconTab', this)">Un-audited & Reconciliation (<span id="unAuditCount">0</span>)</button>
+  </div>
+
+  <!-- TAB 1: SCAN / SEARCH -->
+  <div id="scanTab" class="panel active">
+    <div class="row-flex">
+      <input type="text" id="searchInput" list="serialDatalist" placeholder="Serial বা Name লিখে খুঁজুন..." style="margin:0; flex:1;" oninput="onSearchInput()">
+      <datalist id="serialDatalist"></datalist>
+      <button class="btn-primary" onclick="loadSelectedTablet()">Search</button>
+      <button class="btn-sec" onclick="toggleCamera()">Camera QR</button>
+    </div>
+    <div id="reader"></div>
+
+    <div id="tabletDetailCard" style="display:none;">
+      <div class="grid-2" id="detailGrid"></div>
+
+      <label>Remarks (ঐচ্ছিক)</label>
+      <input type="text" id="auditRemarks" placeholder="কোনো মন্তব্য থাকলে লিখুন...">
+
+      <div class="row-flex">
+        <button class="btn-ok" onclick="doAuditOkay()">Okay (Audit Done)</button>
+        <button class="btn-primary" onclick="toggleEditBox()">Change Info / User</button>
+      </div>
+
+      <div id="editBox" style="display:none; border-top:1px solid #e2e8f0; padding-top:12px; margin-top:10px;">
+        <h4>তথ্য / দায়িত্বপ্রাপ্ত ব্যক্তি পরিবর্তন</h4>
+        <label>New Holder (Name with ID)</label>
+        <select id="editHolderSelect" onchange="checkHolderConflict()">
+          <option value="UNASSIGNED">UNASSIGNED</option>
+        </select>
+
+        <div id="conflictBox" class="alert-warn" style="display:none;">
+          <div id="conflictMsg"></div>
+          <label style="margin-top:8px; display:block;">
+            <input type="checkbox" id="forceAssignCheck" style="width:auto; margin-right:6px;">
+            Forcefully এই ট্যাবলেটটি এনার নামে দিন (Reconciliation-এ ফ্ল্যাগ হবে)
+          </label>
+        </div>
+
+        <label>Status</label>
+        <select id="editStatusSelect">
+          <option value="Running">Running</option>
+          <option value="Available">Available</option>
+          <option value="Sent to IT Repair">Sent to IT Repair</option>
+          <option value="Damaged - Held by Me (Not Given to IT)">Damaged - Held by Me (Not Given to IT)</option>
+          <option value="Good - Unassigned (Spare)">Good - Unassigned (Spare)</option>
+        </select>
+
+        <button class="btn-primary" onclick="saveAssignmentChange()">Save Update & Mark Audited</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: RETURN & REPLACE -->
+  <div id="returnTab" class="panel">
+    <h4>সমস্যাজনক ট্যাবলেট রিটার্ন ও Available List থেকে নতুন ট্যাবলেট দেওয়া</h4>
+    <label>সমস্যাজনক ট্যাবলেট (Return Serial)</label>
+    <select id="returnSerialSelect" onchange="onReturnSerialChange()"></select>
+
+    <label>রিটার্নের পর ট্যাবলেটটির বর্তমান অবস্থা (Return Status)</label>
+    <select id="returnStatusSelect">
+      <option value="Damaged - Held by Me (Not Given to IT)">নষ্ট - আমার কাছে আছে (এখনো IT-কে দেওয়া হয়নি)</option>
+      <option value="Sent to IT Repair">IT-তে রিপেয়ারে দেওয়া হয়েছে</option>
+      <option value="Good - Unassigned (Spare)">ভালো আছে কিন্তু Spare / Unassigned</option>
+    </select>
+
+    <label>Return Remarks</label>
+    <input type="text" id="returnRemarksInput" placeholder="সমস্যার বিবরণ লিখুন...">
+
+    <hr>
+    <h4>Available List থেকে নতুন ট্যাবলেট অ্যাসাইন করুন</h4>
+    <label>Available Tablet Serial</label>
+    <select id="newAvailableSerialSelect">
+      <option value="">-- নতুন ট্যাবলেট না দিলে খালি রাখুন --</option>
+    </select>
+
+    <label>Assign to User (Name with ID)</label>
+    <select id="replaceHolderSelect"></select>
+
+    <button class="btn-warn" onclick="submitReturnAndReplace()">Confirm Return & Assign</button>
+  </div>
+
+  <!-- TAB 3: UN-AUDITED & RECONCILIATION -->
+  <div id="reconTab" class="panel">
+    <h4>যে ট্যাবলেটগুলো এখনো অডিট হয়নি (Un-audited / Reconciliation Window)</h4>
+    <p style="font-size:13px; color:#475569;">এখান থেকে প্রতিটি ট্যাবলেটের বর্তমান অবস্থা (IT Repair, Spare/Unassigned, Damaged Held by Me) সেট করতে পারবেন।</p>
+
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Serial</th>
+            <th>Current Holder</th>
+            <th>Floor / Line</th>
+            <th>Current Status</th>
+            <th>Action Status</th>
+            <th>Remarks</th>
+            <th>Save</th>
+          </tr>
+        </thead>
+        <tbody id="unauditedTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toastBox"></div>
+
+<script>
+let APP_DATA = { tablets: [], availableTablets: [], unauditedTablets: [], staffList: [] };
+let CURRENT_SERIAL = "<?= initialSerial ? initialSerial : '' ?>";
+let html5QrCode = null;
+
+window.onload = function() {
+  refreshData(function() {
+    if (CURRENT_SERIAL) {
+      document.getElementById('searchInput').value = CURRENT_SERIAL;
+      loadTabletBySerial(CURRENT_SERIAL);
+    }
+  });
+};
+
+function showToast(msg) {
+  const el = document.getElementById('toastBox');
+  el.innerText = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3500);
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function refreshData(cb) {
+  google.script.run.withSuccessHandler(function(data) {
+    APP_DATA = data;
+    document.getElementById('unAuditCount').innerText = data.unauditedTablets.length;
+    populateDropdowns();
+    renderUnauditedTable();
+    if (cb) cb();
+  }).getAppBootstrapData();
+}
+
+function populateDropdowns() {
+  const dl = document.getElementById('serialDatalist');
+  dl.innerHTML = '';
+  APP_DATA.tablets.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.serial;
+    opt.label = t.nameWithId + ' (' + t.floor + '-' + t.line + ')';
+    dl.appendChild(opt);
+  });
+
+  const editHolder = document.getElementById('editHolderSelect');
+  const replaceHolder = document.getElementById('replaceHolderSelect');
+  editHolder.innerHTML = '<option value="UNASSIGNED">UNASSIGNED</option>';
+  replaceHolder.innerHTML = '<option value="">-- ইউজার সিলেক্ট করুন --</option>';
+
+  APP_DATA.staffList.forEach(s => {
+    const o1 = document.createElement('option');
+    o1.value = s.nameWithId;
+    o1.text = s.nameWithId + ' (' + s.floor + ' / ' + s.line + ')';
+    editHolder.appendChild(o1);
+
+    const o2 = o1.cloneNode(true);
+    replaceHolder.appendChild(o2);
+  });
+
+  const retSel = document.getElementById('returnSerialSelect');
+  retSel.innerHTML = '';
+  APP_DATA.tablets.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.serial;
+    opt.text = t.serial + ' — ' + t.nameWithId + ' (' + t.status + ')';
+    retSel.appendChild(opt);
+  });
+  onReturnSerialChange();
+
+  const availSel = document.getElementById('newAvailableSerialSelect');
+  availSel.innerHTML = '<option value="">-- নতুন ট্যাবলেট না দিলে খালি রাখুন --</option>';
+  APP_DATA.availableTablets.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.serial;
+    opt.text = t.serial + ' (' + (t.tabSize || '') + ')';
+    availSel.appendChild(opt);
+  });
+}
+
+function onReturnSerialChange() {
+  const ser = document.getElementById('returnSerialSelect').value;
+  const tab = APP_DATA.tablets.find(t => t.serial === ser);
+  if (tab && tab.nameWithId && tab.nameWithId !== 'UNASSIGNED') {
+    document.getElementById('replaceHolderSelect').value = tab.nameWithId;
+  }
+}
+
+function onSearchInput() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  if (!q) return;
+  const exact = APP_DATA.tablets.find(t => t.serial.toLowerCase() === q);
+  if (exact) loadTabletBySerial(exact.serial);
+}
+
+function loadSelectedTablet() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const match = APP_DATA.tablets.find(t =>
+    t.serial.toLowerCase() === q || t.nameWithId.toLowerCase().includes(q)
+  );
+  if (!match) {
+    showToast('কোনো ট্যাবলেট পাওয়া যায়নি।');
+    return;
+  }
+  loadTabletBySerial(match.serial);
+}
+
+function loadTabletBySerial(serial) {
+  const t = APP_DATA.tablets.find(item => item.serial === serial);
+  if (!t) return;
+  CURRENT_SERIAL = t.serial;
+
+  document.getElementById('tabletDetailCard').style.display = 'block';
+  document.getElementById('editBox').style.display = 'none';
+  document.getElementById('conflictBox').style.display = 'none';
+  document.getElementById('forceAssignCheck').checked = false;
+  document.getElementById('auditRemarks').value = t.remarks || '';
+
+  document.getElementById('detailGrid').innerHTML = `
+    <div><b>Serial:</b> ${t.serial}</div>
+    <div><b>Current User:</b> ${t.nameWithId}</div>
+    <div><b>Floor / Line:</b> ${t.floor || '-'} / ${t.line || '-'}</div>
+    <div><b>Position:</b> ${t.position || '-'}</div>
+    <div><b>Status:</b> ${t.status}</div>
+    <div><b>This Month Audit:</b> ${t.isAuditedThisMonth ? 'Audited (' + t.lastAuditDate + ')' : 'Pending'}</div>
+    <div><b>Tab Size:</b> ${t.tabSize || '-'}</div>
+    <div><b>Purchase Date:</b> ${t.purchaseDate || '-'}</div>
+    <div><b>Service Length:</b> ${t.serviceLength || '-'}</div>
+    <div><b>Last Repair:</b> ${t.lastRepairDate || '-'}</div>
+  `;
+
+  document.getElementById('editHolderSelect').value = t.nameWithId || 'UNASSIGNED';
+  document.getElementById('editStatusSelect').value = t.status || 'Running';
+}
+
+function doAuditOkay() {
+  if (!CURRENT_SERIAL) return;
+  const rem = document.getElementById('auditRemarks').value;
+  google.script.run.withSuccessHandler(function(res) {
+    showToast(res.message);
+    refreshData(function() { loadTabletBySerial(CURRENT_SERIAL); });
+  }).markAuditOkay(CURRENT_SERIAL, rem);
+}
+
+function toggleEditBox() {
+  const box = document.getElementById('editBox');
+  box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+  checkHolderConflict();
+}
+
+function checkHolderConflict() {
+  const holder = document.getElementById('editHolderSelect').value;
+  google.script.run.withSuccessHandler(function(res) {
+    const cBox = document.getElementById('conflictBox');
+    if (res.hasConflict) {
+      cBox.style.display = 'block';
+      document.getElementById('conflictMsg').innerText =
+        'সতর্কতা: ' + holder + '-এর নামে ইতিমধ্যে (' + res.conflictingSerials.join(', ') + ') ট্যাবলেট রেজিস্টার করা আছে!';
+    } else {
+      cBox.style.display = 'none';
+      document.getElementById('forceAssignCheck').checked = false;
+    }
+  }).checkExistingHolder(holder, CURRENT_SERIAL);
+}
+
+function saveAssignmentChange() {
+  const holder = document.getElementById('editHolderSelect').value;
+  const status = document.getElementById('editStatusSelect').value;
+  const remarks = document.getElementById('auditRemarks').value;
+  const force = document.getElementById('forceAssignCheck').checked;
+
+  google.script.run.withSuccessHandler(function(res) {
+    showToast(res.message);
+    if (res.success) {
+      refreshData(function() { loadTabletBySerial(CURRENT_SERIAL); });
+    }
+  }).updateTabletAssignment({
+    serial: CURRENT_SERIAL,
+    newHolder: holder,
+    newStatus: status,
+    remarks: remarks,
+    forceAssign: force,
+    markAudited: true
+  });
+}
+
+function submitReturnAndReplace() {
+  const oldSerial = document.getElementById('returnSerialSelect').value;
+  const retStatus = document.getElementById('returnStatusSelect').value;
+  const retRemarks = document.getElementById('returnRemarksInput').value;
+  const newSerial = document.getElementById('newAvailableSerialSelect').value;
+  const newHolder = document.getElementById('replaceHolderSelect').value;
+
+  google.script.run.withSuccessHandler(function(res) {
+    showToast(res.message);
+    if (res.success) {
+      document.getElementById('returnRemarksInput').value = '';
+      refreshData();
+    }
+  }).returnAndReplaceTablet(oldSerial, retStatus, retRemarks, newSerial, newHolder, '');
+}
+
+function renderUnauditedTable() {
+  const tbody = document.getElementById('unauditedTableBody');
+  tbody.innerHTML = '';
+
+  APP_DATA.unauditedTablets.forEach((t, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><b>${t.serial}</b></td>
+      <td>${t.nameWithId}</td>
+      <td>${t.floor || '-'} / ${t.line || '-'}</td>
+      <td>${t.status}</td>
+      <td>
+        <select id="recStatus_${idx}" style="margin:0;">
+          <option value="Running">Running (Audit OK)</option>
+          <option value="Sent to IT Repair">IT-তে Repair-এ দেওয়া আছে</option>
+          <option value="Good - Unassigned (Spare)">ভালো আছে কিন্তু কাউকে দেওয়া হয়নি</option>
+          <option value="Damaged - Held by Me (Not Given to IT)">নষ্ট - আমার কাছে আছে (IT-কে দেওয়া হয়নি)</option>
+        </select>
+      </td>
+      <td><input type="text" id="recRem_${idx}" value="${t.remarks || ''}" style="margin:0;"></td>
+      <td><button class="btn-ok" onclick="saveReconRow(${idx}, '${t.serial}')">Save</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function saveReconRow(idx, serial) {
+  const st = document.getElementById('recStatus_' + idx).value;
+  const rem = document.getElementById('recRem_' + idx).value;
+  google.script.run.withSuccessHandler(function(res) {
+    showToast(res.message);
+    refreshData();
+  }).setReconciliationStatus(serial, st, rem, true);
+}
+
+function toggleCamera() {
+  const readerDiv = document.getElementById('reader');
+  if (readerDiv.style.display === 'block') {
+    if (html5QrCode) html5QrCode.stop().catch(() => {});
+    readerDiv.style.display = 'none';
+    return;
+  }
+  readerDiv.style.display = 'block';
+  html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 220 },
+    function(decodedText) {
+      let ser = decodedText;
+      try {
+        const url = new URL(decodedText);
+        if (url.searchParams.get('serial')) ser = url.searchParams.get('serial');
+      } catch (e) {}
+      html5QrCode.stop().catch(() => {});
+      readerDiv.style.display = 'none';
+      document.getElementById('searchInput').value = ser;
+      loadTabletBySerial(ser);
+    }
+  ).catch(err => showToast('Camera start error: ' + err));
+}
+</script>
+</body>
+</html>
