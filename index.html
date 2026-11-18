@@ -1,412 +1,579 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f8fafc; margin: 0; padding: 14px; color: #0f172a; }
-    .container { max-width: 760px; margin: 0 auto; }
-    .tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-    .tab-btn { flex: 1; padding: 10px; border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; cursor: pointer; font-weight: bold; }
-    .tab-btn.active { background: #0f172a; color: #fff; border-color: #0f172a; }
-    .panel { display: none; background: #fff; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 14px; }
-    .panel.active { display: block; }
-    .row-flex { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-    input, select, textarea { width: 100%; padding: 9px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; margin-top: 4px; margin-bottom: 10px; }
-    button { padding: 9px 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    .btn-primary { background: #2563eb; color: #fff; }
-    .btn-ok { background: #16a34a; color: #fff; }
-    .btn-warn { background: #d97706; color: #fff; }
-    .btn-danger { background: #dc2626; color: #fff; }
-    .btn-sec { background: #e2e8f0; color: #0f172a; }
-    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; background: #f1f5f9; padding: 12px; border-radius: 8px; margin: 10px 0; }
-    .alert-warn { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px; border-radius: 8px; margin: 10px 0; }
-    .toast { position: fixed; bottom: 16px; right: 16px; background: #0f172a; color: #fff; padding: 12px 16px; border-radius: 8px; display: none; z-index: 999; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
-    th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
-    th { background: #f8fafc; }
-    #reader { width: 100%; max-width: 360px; margin: 10px auto; display: none; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablet Audit System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #f1f5f9; margin: 0; padding: 14px; color: #0f172a; }
+  .container { max-width: 820px; margin: 0 auto; }
+  h3 { margin: 0 0 4px; }
+  h4 { margin: 16px 0 8px; }
+  .sub { font-size: 13px; color: #475569; margin-bottom: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab-btn { flex: 1; min-width: 120px; padding: 10px; border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; cursor: pointer; font-weight: bold; }
+  .tab-btn.active { background: #0f172a; color: #fff; border-color: #0f172a; }
+  .panel { display: none; background: #fff; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .panel.active { display: block; }
+  .row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+  .row input { flex: 1; min-width: 150px; margin: 0; }
+  input, select { width: 100%; padding: 9px; border: 1px solid #cbd5e1; border-radius: 6px; margin: 4px 0 10px; font-size: 14px; background: #fff; }
+  label { font-size: 13px; font-weight: bold; color: #334155; }
+  button { padding: 9px 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  .small { padding: 6px 10px; font-size: 12px; }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-ok { background: #16a34a; color: #fff; }
+  .btn-warn { background: #d97706; color: #fff; }
+  .btn-sec { background: #e2e8f0; color: #0f172a; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; background: #f1f5f9; padding: 12px; border-radius: 8px; margin: 10px 0; font-size: 14px; }
+  .alert { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px; border-radius: 8px; margin: 10px 0; }
+  .alert label.check { display: flex; gap: 8px; align-items: center; margin-top: 8px; color: #991b1b; }
+  .alert label.check input { width: auto; margin: 0; }
+  .editbox { border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 8px; }
+  .hint { font-size: 12px; color: #64748b; margin: 2px 0 8px; }
+  .match-btn { display: block; width: 100%; text-align: left; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 6px; font-weight: normal; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { border: 1px solid #e2e8f0; padding: 6px; text-align: left; vertical-align: top; }
+  td select, td input { margin: 0; min-width: 120px; }
+  th { background: #f8fafc; }
+  #reader { width: 100%; max-width: 360px; margin: 10px auto; display: none; }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 12px 16px; border-radius: 8px; display: none; z-index: 999; max-width: 90%; font-size: 14px; }
+  .label-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+  .label { border: 1px dashed #94a3b8; border-radius: 6px; padding: 8px; text-align: center; background: #fff; }
+  .qr { display: flex; justify-content: center; }
+  .qr img, .qr canvas { max-width: 100%; }
+  .serial { font-family: monospace; font-weight: bold; font-size: 13px; margin-top: 6px; word-break: break-all; }
+  .card { background: #fff; border-radius: 12px; padding: 24px; max-width: 400px; margin: 30px auto; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+  .badge { display: inline-block; background: #e0f2fe; color: #0369a1; font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 20px; margin-bottom: 12px; }
+  .prow { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #e5e7eb; }
+  .prow:last-child { border-bottom: none; }
+  .plabel { color: #6b7280; font-size: 14px; }
+  .pval { font-weight: bold; text-align: right; }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .noprint { display: none !important; }
+    .panel { box-shadow: none; padding: 0; }
+    .label-grid { grid-template-columns: repeat(4, 1fr); }
+    .label { break-inside: avoid; }
+  }
+</style>
 </head>
 <body>
-<div class="container">
-  <h3>Tablet Monthly Audit System (<?= initialSerial ? initialSerial : 'Ready' ?>)</h3>
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('scanTab', this)">Scan / Search</button>
-    <button class="tab-btn" onclick="switchTab('returnTab', this)">Return & Replace</button>
-    <button class="tab-btn" onclick="switchTab('reconTab', this)">Un-audited & Reconciliation (<span id="unAuditCount">0</span>)</button>
+<!-- PUBLIC VIEW (opened by scanning QR with a normal phone camera) -->
+<div id="publicView" style="display:none">
+  <div class="card">
+    <div class="badge">Public View</div>
+    <h3>Tablet Information</h3>
+    <div id="publicBody">Loading...</div>
+  </div>
+</div>
+
+<!-- FULL APP -->
+<div id="appView" class="container" style="display:none">
+  <div class="noprint">
+    <h3>Tablet Monthly Audit System</h3>
+    <div class="sub">
+      <span id="summary">Loading data...</span>
+      <button class="btn-sec small" onclick="doRefresh(this)">Refresh</button>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="scanTab" onclick="switchTab('scanTab')">Scan / Search</button>
+      <button class="tab-btn" data-tab="printTab" onclick="switchTab('printTab')">Print QR Labels</button>
+      <button class="tab-btn" data-tab="returnTab" onclick="switchTab('returnTab')">Return &amp; Replace</button>
+      <button class="tab-btn" data-tab="reconTab" onclick="switchTab('reconTab')">Reconciliation (<span id="reconCount">0</span>)</button>
+    </div>
   </div>
 
-  <!-- TAB 1: SCAN / SEARCH -->
-  <div id="scanTab" class="panel active">
-    <div class="row-flex">
-      <input type="text" id="searchInput" list="serialDatalist" placeholder="Serial বা Name লিখে খুঁজুন..." style="margin:0; flex:1;" oninput="onSearchInput()">
-      <datalist id="serialDatalist"></datalist>
-      <button class="btn-primary" onclick="loadSelectedTablet()">Search</button>
-      <button class="btn-sec" onclick="toggleCamera()">Camera QR</button>
+  <!-- SCAN / SEARCH -->
+  <div id="scanTab" class="panel active noprint">
+    <div class="row">
+      <input id="searchInput" placeholder="Type Serial or Name, then press Search" onkeydown="if(event.key==='Enter')searchNow()">
+      <button class="btn-primary" onclick="searchNow()">Search</button>
+      <button class="btn-sec" onclick="toggleCamera()">Scan QR</button>
     </div>
     <div id="reader"></div>
+    <div id="matches"></div>
 
-    <div id="tabletDetailCard" style="display:none;">
-      <div class="grid-2" id="detailGrid"></div>
-
-      <label>Remarks (ঐচ্ছিক)</label>
-      <input type="text" id="auditRemarks" placeholder="কোনো মন্তব্য থাকলে লিখুন...">
-
-      <div class="row-flex">
-        <button class="btn-ok" onclick="doAuditOkay()">Okay (Audit Done)</button>
-        <button class="btn-primary" onclick="toggleEditBox()">Change Info / User</button>
+    <div id="detail" style="display:none">
+      <div class="grid" id="detailGrid"></div>
+      <label>Remarks (optional)</label>
+      <input id="auditRemarks" placeholder="Write a remark if needed">
+      <div class="row">
+        <button class="btn-ok" onclick="auditOkay(this)">Okay - Mark Audited</button>
+        <button class="btn-primary" onclick="toggleEdit()">Change User / Status</button>
       </div>
 
-      <div id="editBox" style="display:none; border-top:1px solid #e2e8f0; padding-top:12px; margin-top:10px;">
-        <h4>তথ্য / দায়িত্বপ্রাপ্ত ব্যক্তি পরিবর্তন</h4>
-        <label>New Holder (Name with ID)</label>
-        <select id="editHolderSelect" onchange="checkHolderConflict()">
-          <option value="UNASSIGNED">UNASSIGNED</option>
-        </select>
-
-        <div id="conflictBox" class="alert-warn" style="display:none;">
+      <div id="editBox" class="editbox" style="display:none">
+        <label>New holder (Name with ID)</label>
+        <input id="editHolder" list="staffList" autocomplete="off" oninput="checkConflict()" placeholder="Type to search a person, or UNASSIGNED">
+        <datalist id="staffList"></datalist>
+        <div id="conflictBox" class="alert" style="display:none">
           <div id="conflictMsg"></div>
-          <label style="margin-top:8px; display:block;">
-            <input type="checkbox" id="forceAssignCheck" style="width:auto; margin-right:6px;">
-            Forcefully এই ট্যাবলেটটি এনার নামে দিন (Reconciliation-এ ফ্ল্যাগ হবে)
-          </label>
+          <label class="check"><input type="checkbox" id="forceCheck"> Force Update (flag for reconciliation after audit)</label>
         </div>
-
         <label>Status</label>
-        <select id="editStatusSelect">
-          <option value="Running">Running</option>
-          <option value="Available">Available</option>
-          <option value="Sent to IT Repair">Sent to IT Repair</option>
-          <option value="Damaged - Held by Me (Not Given to IT)">Damaged - Held by Me (Not Given to IT)</option>
-          <option value="Good - Unassigned (Spare)">Good - Unassigned (Spare)</option>
-        </select>
-
-        <button class="btn-primary" onclick="saveAssignmentChange()">Save Update & Mark Audited</button>
+        <select id="editStatus" onchange="onStatusChange()"></select>
+        <button class="btn-primary" onclick="saveChange(this)">Save Update &amp; Mark Audited</button>
       </div>
     </div>
   </div>
 
-  <!-- TAB 2: RETURN & REPLACE -->
-  <div id="returnTab" class="panel">
-    <h4>সমস্যাজনক ট্যাবলেট রিটার্ন ও Available List থেকে নতুন ট্যাবলেট দেওয়া</h4>
-    <label>সমস্যাজনক ট্যাবলেট (Return Serial)</label>
-    <select id="returnSerialSelect" onchange="onReturnSerialChange()"></select>
-
-    <label>রিটার্নের পর ট্যাবলেটটির বর্তমান অবস্থা (Return Status)</label>
-    <select id="returnStatusSelect">
-      <option value="Damaged - Held by Me (Not Given to IT)">নষ্ট - আমার কাছে আছে (এখনো IT-কে দেওয়া হয়নি)</option>
-      <option value="Sent to IT Repair">IT-তে রিপেয়ারে দেওয়া হয়েছে</option>
-      <option value="Good - Unassigned (Spare)">ভালো আছে কিন্তু Spare / Unassigned</option>
-    </select>
-
-    <label>Return Remarks</label>
-    <input type="text" id="returnRemarksInput" placeholder="সমস্যার বিবরণ লিখুন...">
-
-    <hr>
-    <h4>Available List থেকে নতুন ট্যাবলেট অ্যাসাইন করুন</h4>
-    <label>Available Tablet Serial</label>
-    <select id="newAvailableSerialSelect">
-      <option value="">-- নতুন ট্যাবলেট না দিলে খালি রাখুন --</option>
-    </select>
-
-    <label>Assign to User (Name with ID)</label>
-    <select id="replaceHolderSelect"></select>
-
-    <button class="btn-warn" onclick="submitReturnAndReplace()">Confirm Return & Assign</button>
+  <!-- PRINT QR LABELS -->
+  <div id="printTab" class="panel">
+    <div class="noprint">
+      <div class="row">
+        <input id="labelFilter" placeholder="Filter by Serial or Name (optional)" oninput="renderLabels()">
+        <button class="btn-primary" onclick="window.print()">Print Labels</button>
+      </div>
+      <div class="hint"><span id="labelCount">0 labels</span> | QR links to: <span id="baseUrlText"></span></div>
+    </div>
+    <div id="labelGrid" class="label-grid"></div>
   </div>
 
-  <!-- TAB 3: UN-AUDITED & RECONCILIATION -->
-  <div id="reconTab" class="panel">
-    <h4>যে ট্যাবলেটগুলো এখনো অডিট হয়নি (Un-audited / Reconciliation Window)</h4>
-    <p style="font-size:13px; color:#475569;">এখান থেকে প্রতিটি ট্যাবলেটের বর্তমান অবস্থা (IT Repair, Spare/Unassigned, Damaged Held by Me) সেট করতে পারবেন।</p>
+  <!-- RETURN & REPLACE -->
+  <div id="returnTab" class="panel noprint">
+    <h4>1. Tablet being returned</h4>
+    <input id="retSerial" list="retList" autocomplete="off" placeholder="Type or pick Serial" oninput="onRetPick()">
+    <datalist id="retList"></datalist>
+    <div id="retInfo" class="hint"></div>
+    <label>Return status</label>
+    <select id="retStatus">
+      <option value="Damaged - Held by Me (Not Given to IT)">Damaged - Held by Me (Not Given to IT)</option>
+      <option value="Sent to IT Repair">Sent to IT Repair</option>
+      <option value="Available">Available</option>
+    </select>
+    <label>Return remarks</label>
+    <input id="retRemarks" placeholder="Describe the problem">
+    <h4>2. Replacement tablet (from Available list)</h4>
+    <select id="retNewSerial"></select>
+    <div class="hint">The replacement is given to the same user who held the returned tablet. Leave empty to only return.</div>
+    <button class="btn-warn" onclick="submitReturn(this)">Confirm Return &amp; Replace</button>
+  </div>
 
-    <div style="overflow-x:auto;">
+  <!-- RECONCILIATION -->
+  <div id="reconTab" class="panel noprint">
+    <div id="pendingSection"></div>
+    <h4>Not audited this month</h4>
+    <input id="reconFilter" placeholder="Filter by Serial or Name" oninput="renderRecon()">
+    <div class="hint" id="reconHint"></div>
+    <div class="scroll">
       <table>
-        <thead>
-          <tr>
-            <th>Serial</th>
-            <th>Current Holder</th>
-            <th>Floor / Line</th>
-            <th>Current Status</th>
-            <th>Action Status</th>
-            <th>Remarks</th>
-            <th>Save</th>
-          </tr>
-        </thead>
-        <tbody id="unauditedTableBody"></tbody>
+        <thead><tr><th>Serial</th><th>Holder</th><th>Floor / Line</th><th>Status</th><th>Remarks</th><th></th></tr></thead>
+        <tbody id="reconBody"></tbody>
       </table>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toastBox"></div>
+<div id="toast"></div>
 
 <script>
-let APP_DATA = { tablets: [], availableTablets: [], unauditedTablets: [], staffList: [] };
-let CURRENT_SERIAL = "<?= initialSerial ? initialSerial : '' ?>";
-let html5QrCode = null;
+/* ====== SETTINGS: paste your Apps Script /exec URL between the quotes ====== */
+const API_URL = 'PASTE_YOUR_EXEC_URL_HERE';
+/* ========================================================================== */
 
-window.onload = function() {
-  refreshData(function() {
-    if (CURRENT_SERIAL) {
-      document.getElementById('searchInput').value = CURRENT_SERIAL;
-      loadTabletBySerial(CURRENT_SERIAL);
-    }
+const UNASSIGNED = 'UNASSIGNED';
+const STATUS_LIST = ['Running', 'Available', 'Sent to IT Repair', 'Damaged - Held by Me (Not Given to IT)'];
+const RECON_OPTIONS = [
+  { v: 'Running', l: 'Running - Audited OK (keep user)' },
+  { v: 'Available', l: 'Good spare - not assigned to anyone' },
+  { v: 'Sent to IT Repair', l: 'Sent to IT for repair' },
+  { v: 'Damaged - Held by Me (Not Given to IT)', l: 'Damaged - held by me (not given to IT)' }
+];
+
+const $ = function (id) { return document.getElementById(id); };
+const sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
   });
-};
+}
 
-function showToast(msg) {
-  const el = document.getElementById('toastBox');
-  el.innerText = msg;
+let APP = { monthKey: '', tablets: [], staff: [], pendingRecon: [] };
+let CURRENT = '';
+let qrScanner = null;
+let labelToken = 0;
+
+/* ---------- API with retry ---------- */
+async function fetchRetry(url, opts, tries) {
+  let lastErr;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetch(url, opts);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } catch (e) {
+      lastErr = e;
+      if (i < tries - 1) await sleep(700 * (i + 1));
+    }
+  }
+  throw lastErr;
+}
+function apiGet(params) {
+  return fetchRetry(API_URL + '?' + new URLSearchParams(params).toString(), { method: 'GET' }, 3);
+}
+function apiPost(body) {
+  return fetchRetry(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(body)
+  }, 2);
+}
+
+/* ---------- UI helpers ---------- */
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
   el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 3500);
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function () { el.style.display = 'none'; }, 4000);
+}
+async function busy(btn, fn) {
+  if (btn.disabled) return;
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Please wait...';
+  try { await fn(); }
+  catch (e) { toast('Error: ' + (e.message || e)); }
+  finally { btn.disabled = false; btn.textContent = old; }
+}
+function baseUrl() {
+  return location.origin + location.pathname.replace(/index\.html$/, '');
 }
 
-function switchTab(tabId, btn) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(tabId).classList.add('active');
-  if (btn) btn.classList.add('active');
+/* ---------- Start ---------- */
+const serialParam = (new URLSearchParams(location.search).get('serial') || '').trim();
+if (API_URL.indexOf('PASTE_') === 0) {
+  document.body.innerHTML = '<div class="card"><h3>Setup needed</h3><p>Open index.html and paste your Apps Script /exec URL into API_URL.</p></div>';
+} else if (serialParam) {
+  showPublic();
+} else {
+  initApp();
 }
 
-function refreshData(cb) {
-  google.script.run.withSuccessHandler(function(data) {
-    APP_DATA = data;
-    document.getElementById('unAuditCount').innerText = data.unauditedTablets.length;
-    populateDropdowns();
-    renderUnauditedTable();
-    if (cb) cb();
-  }).getAppBootstrapData();
-}
-
-function populateDropdowns() {
-  const dl = document.getElementById('serialDatalist');
-  dl.innerHTML = '';
-  APP_DATA.tablets.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.serial;
-    opt.label = t.nameWithId + ' (' + t.floor + '-' + t.line + ')';
-    dl.appendChild(opt);
-  });
-
-  const editHolder = document.getElementById('editHolderSelect');
-  const replaceHolder = document.getElementById('replaceHolderSelect');
-  editHolder.innerHTML = '<option value="UNASSIGNED">UNASSIGNED</option>';
-  replaceHolder.innerHTML = '<option value="">-- ইউজার সিলেক্ট করুন --</option>';
-
-  APP_DATA.staffList.forEach(s => {
-    const o1 = document.createElement('option');
-    o1.value = s.nameWithId;
-    o1.text = s.nameWithId + ' (' + s.floor + ' / ' + s.line + ')';
-    editHolder.appendChild(o1);
-
-    const o2 = o1.cloneNode(true);
-    replaceHolder.appendChild(o2);
-  });
-
-  const retSel = document.getElementById('returnSerialSelect');
-  retSel.innerHTML = '';
-  APP_DATA.tablets.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.serial;
-    opt.text = t.serial + ' — ' + t.nameWithId + ' (' + t.status + ')';
-    retSel.appendChild(opt);
-  });
-  onReturnSerialChange();
-
-  const availSel = document.getElementById('newAvailableSerialSelect');
-  availSel.innerHTML = '<option value="">-- নতুন ট্যাবলেট না দিলে খালি রাখুন --</option>';
-  APP_DATA.availableTablets.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.serial;
-    opt.text = t.serial + ' (' + (t.tabSize || '') + ')';
-    availSel.appendChild(opt);
-  });
-}
-
-function onReturnSerialChange() {
-  const ser = document.getElementById('returnSerialSelect').value;
-  const tab = APP_DATA.tablets.find(t => t.serial === ser);
-  if (tab && tab.nameWithId && tab.nameWithId !== 'UNASSIGNED') {
-    document.getElementById('replaceHolderSelect').value = tab.nameWithId;
+/* ---------- Public view ---------- */
+async function showPublic() {
+  $('publicView').style.display = 'block';
+  try {
+    const r = await apiGet({ action: 'public', serial: serialParam });
+    if (!r.success) throw new Error(r.message);
+    if (!r.found) {
+      $('publicBody').innerHTML = '<p>Serial <b>' + esc(serialParam) + '</b> was not found.</p>';
+      return;
+    }
+    $('publicBody').innerHTML =
+      '<div class="prow"><span class="plabel">Name with ID</span><span class="pval">' + esc(r.nameWithId) + '</span></div>' +
+      '<div class="prow"><span class="plabel">Floor</span><span class="pval">' + esc(r.floor) + '</span></div>' +
+      '<div class="prow"><span class="plabel">Name</span><span class="pval">' + esc(r.name) + '</span></div>';
+  } catch (e) {
+    $('publicBody').innerHTML = '<p>Could not load information. Please check your internet and reload.</p>';
   }
 }
 
-function onSearchInput() {
-  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+/* ---------- App init ---------- */
+function initApp() {
+  $('appView').style.display = 'block';
+  const sel = $('editStatus');
+  sel.innerHTML = STATUS_LIST.map(function (s) { return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join('');
+  $('baseUrlText').textContent = baseUrl();
+  try {
+    const c = JSON.parse(localStorage.getItem('tabletAuditCache') || 'null');
+    if (c && c.data) { APP = c.data; renderAll(); }
+  } catch (e) {}
+  refresh();
+}
+
+async function refresh() {
+  try {
+    const r = await apiGet({ action: 'bootstrap' });
+    if (!r.success) throw new Error(r.message);
+    APP = r.data;
+    try { localStorage.setItem('tabletAuditCache', JSON.stringify({ t: Date.now(), data: APP })); } catch (e) {}
+    renderAll();
+    return true;
+  } catch (e) {
+    toast('Could not load data: ' + (e.message || e));
+    return false;
+  }
+}
+function doRefresh(btn) {
+  return busy(btn, async function () {
+    if (await refresh()) toast('Data refreshed.');
+  });
+}
+
+function renderAll() {
+  const total = APP.tablets.length;
+  const audited = APP.tablets.filter(function (t) { return t.auditedThisMonth; }).length;
+  $('summary').textContent = audited + ' / ' + total + ' audited in ' + APP.monthKey;
+  const notAudited = total - audited;
+  $('reconCount').textContent = notAudited + (APP.pendingRecon.length ? ' + ' + APP.pendingRecon.length + ' flagged' : '');
+
+  $('staffList').innerHTML = '<option value="' + UNASSIGNED + '"></option>' + APP.staff.map(function (s) {
+    return '<option value="' + esc(s.nameWithId) + '">' + esc(s.floor + ' / ' + s.line) + '</option>';
+  }).join('');
+
+  $('retList').innerHTML = APP.tablets.filter(function (t) { return t.nameWithId !== UNASSIGNED; }).map(function (t) {
+    return '<option value="' + esc(t.serial) + '">' + esc(t.nameWithId) + '</option>';
+  }).join('');
+
+  $('retNewSerial').innerHTML = '<option value="">-- No replacement (return only) --</option>' +
+    APP.tablets.filter(function (t) { return t.status === 'Available'; }).map(function (t) {
+      return '<option value="' + esc(t.serial) + '">' + esc(t.serial + (t.tabSize ? ' (' + t.tabSize + ')' : '')) + '</option>';
+    }).join('');
+
+  renderPending();
+  renderRecon();
+  if ($('printTab').classList.contains('active')) renderLabels();
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === id); });
+  $(id).classList.add('active');
+  if (id !== 'scanTab') stopCamera();
+  if (id === 'printTab') renderLabels();
+}
+
+/* ---------- Scan / Search ---------- */
+function searchNow() {
+  const q = $('searchInput').value.trim().toLowerCase();
   if (!q) return;
-  const exact = APP_DATA.tablets.find(t => t.serial.toLowerCase() === q);
-  if (exact) loadTabletBySerial(exact.serial);
+  const exact = APP.tablets.find(function (t) { return t.serial.toLowerCase() === q; });
+  if (exact) return selectTablet(exact.serial);
+  const m = APP.tablets.filter(function (t) {
+    return t.serial.toLowerCase().indexOf(q) >= 0 || t.nameWithId.toLowerCase().indexOf(q) >= 0;
+  });
+  if (!m.length) { toast('No tablet found.'); return; }
+  if (m.length === 1) return selectTablet(m[0].serial);
+  $('detail').style.display = 'none';
+  $('matches').innerHTML = '<div class="hint">' + m.length + ' matches' + (m.length > 20 ? ' (showing first 20)' : '') + ' - tap one:</div>' +
+    m.slice(0, 20).map(function (t) {
+      return '<button class="match-btn" data-serial="' + esc(t.serial) + '" onclick="selectTablet(this.dataset.serial)">' +
+        esc(t.serial) + ' - ' + esc(t.nameWithId) + '</button>';
+    }).join('');
 }
 
-function loadSelectedTablet() {
-  const q = document.getElementById('searchInput').value.trim().toLowerCase();
-  const match = APP_DATA.tablets.find(t =>
-    t.serial.toLowerCase() === q || t.nameWithId.toLowerCase().includes(q)
-  );
-  if (!match) {
-    showToast('কোনো ট্যাবলেট পাওয়া যায়নি।');
-    return;
-  }
-  loadTabletBySerial(match.serial);
-}
-
-function loadTabletBySerial(serial) {
-  const t = APP_DATA.tablets.find(item => item.serial === serial);
+function selectTablet(serial) {
+  const t = APP.tablets.find(function (x) { return x.serial === serial; });
   if (!t) return;
-  CURRENT_SERIAL = t.serial;
-
-  document.getElementById('tabletDetailCard').style.display = 'block';
-  document.getElementById('editBox').style.display = 'none';
-  document.getElementById('conflictBox').style.display = 'none';
-  document.getElementById('forceAssignCheck').checked = false;
-  document.getElementById('auditRemarks').value = t.remarks || '';
-
-  document.getElementById('detailGrid').innerHTML = `
-    <div><b>Serial:</b> ${t.serial}</div>
-    <div><b>Current User:</b> ${t.nameWithId}</div>
-    <div><b>Floor / Line:</b> ${t.floor || '-'} / ${t.line || '-'}</div>
-    <div><b>Position:</b> ${t.position || '-'}</div>
-    <div><b>Status:</b> ${t.status}</div>
-    <div><b>This Month Audit:</b> ${t.isAuditedThisMonth ? 'Audited (' + t.lastAuditDate + ')' : 'Pending'}</div>
-    <div><b>Tab Size:</b> ${t.tabSize || '-'}</div>
-    <div><b>Purchase Date:</b> ${t.purchaseDate || '-'}</div>
-    <div><b>Service Length:</b> ${t.serviceLength || '-'}</div>
-    <div><b>Last Repair:</b> ${t.lastRepairDate || '-'}</div>
-  `;
-
-  document.getElementById('editHolderSelect').value = t.nameWithId || 'UNASSIGNED';
-  document.getElementById('editStatusSelect').value = t.status || 'Running';
+  CURRENT = serial;
+  $('matches').innerHTML = '';
+  $('detail').style.display = 'block';
+  $('editBox').style.display = 'none';
+  $('forceCheck').checked = false;
+  $('conflictBox').style.display = 'none';
+  $('auditRemarks').value = t.remarks || '';
+  const row = function (k, v) { return '<div><b>' + k + ':</b> ' + esc(v || '-') + '</div>'; };
+  $('detailGrid').innerHTML =
+    row('Serial', t.serial) + row('Name with ID', t.nameWithId) +
+    row('Floor / Line', (t.floor || '-') + ' / ' + (t.line || '-')) + row('Position', t.position) +
+    row('Status', t.status) +
+    row('Audit this month', t.auditedThisMonth ? 'Audited (' + t.lastAuditDate + ')' : 'Pending') +
+    row('Tab Size', t.tabSize) + row('Purchase Date', t.purchaseDate) +
+    row('Service Length', t.serviceLength) + row('Service Duration', t.serviceDuration) +
+    row('Last Repair Date', t.lastRepairDate);
+  $('editHolder').value = t.nameWithId;
+  $('editStatus').value = STATUS_LIST.indexOf(t.status) >= 0 ? t.status : 'Running';
 }
 
-function doAuditOkay() {
-  if (!CURRENT_SERIAL) return;
-  const rem = document.getElementById('auditRemarks').value;
-  google.script.run.withSuccessHandler(function(res) {
-    showToast(res.message);
-    refreshData(function() { loadTabletBySerial(CURRENT_SERIAL); });
-  }).markAuditOkay(CURRENT_SERIAL, rem);
+function currentTablet() {
+  return APP.tablets.find(function (x) { return x.serial === CURRENT; });
 }
-
-function toggleEditBox() {
-  const box = document.getElementById('editBox');
-  box.style.display = (box.style.display === 'none') ? 'block' : 'none';
-  checkHolderConflict();
+function toggleEdit() {
+  const b = $('editBox');
+  b.style.display = b.style.display === 'none' ? 'block' : 'none';
+  checkConflict();
 }
-
-function checkHolderConflict() {
-  const holder = document.getElementById('editHolderSelect').value;
-  google.script.run.withSuccessHandler(function(res) {
-    const cBox = document.getElementById('conflictBox');
-    if (res.hasConflict) {
-      cBox.style.display = 'block';
-      document.getElementById('conflictMsg').innerText =
-        'সতর্কতা: ' + holder + '-এর নামে ইতিমধ্যে (' + res.conflictingSerials.join(', ') + ') ট্যাবলেট রেজিস্টার করা আছে!';
-    } else {
-      cBox.style.display = 'none';
-      document.getElementById('forceAssignCheck').checked = false;
-    }
-  }).checkExistingHolder(holder, CURRENT_SERIAL);
+function onStatusChange() {
+  if ($('editStatus').value !== 'Running') $('editHolder').value = UNASSIGNED;
+  checkConflict();
 }
-
-function saveAssignmentChange() {
-  const holder = document.getElementById('editHolderSelect').value;
-  const status = document.getElementById('editStatusSelect').value;
-  const remarks = document.getElementById('auditRemarks').value;
-  const force = document.getElementById('forceAssignCheck').checked;
-
-  google.script.run.withSuccessHandler(function(res) {
-    showToast(res.message);
-    if (res.success) {
-      refreshData(function() { loadTabletBySerial(CURRENT_SERIAL); });
-    }
-  }).updateTabletAssignment({
-    serial: CURRENT_SERIAL,
-    newHolder: holder,
-    newStatus: status,
-    remarks: remarks,
-    forceAssign: force,
-    markAudited: true
-  });
-}
-
-function submitReturnAndReplace() {
-  const oldSerial = document.getElementById('returnSerialSelect').value;
-  const retStatus = document.getElementById('returnStatusSelect').value;
-  const retRemarks = document.getElementById('returnRemarksInput').value;
-  const newSerial = document.getElementById('newAvailableSerialSelect').value;
-  const newHolder = document.getElementById('replaceHolderSelect').value;
-
-  google.script.run.withSuccessHandler(function(res) {
-    showToast(res.message);
-    if (res.success) {
-      document.getElementById('returnRemarksInput').value = '';
-      refreshData();
-    }
-  }).returnAndReplaceTablet(oldSerial, retStatus, retRemarks, newSerial, newHolder, '');
-}
-
-function renderUnauditedTable() {
-  const tbody = document.getElementById('unauditedTableBody');
-  tbody.innerHTML = '';
-
-  APP_DATA.unauditedTablets.forEach((t, idx) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><b>${t.serial}</b></td>
-      <td>${t.nameWithId}</td>
-      <td>${t.floor || '-'} / ${t.line || '-'}</td>
-      <td>${t.status}</td>
-      <td>
-        <select id="recStatus_${idx}" style="margin:0;">
-          <option value="Running">Running (Audit OK)</option>
-          <option value="Sent to IT Repair">IT-তে Repair-এ দেওয়া আছে</option>
-          <option value="Good - Unassigned (Spare)">ভালো আছে কিন্তু কাউকে দেওয়া হয়নি</option>
-          <option value="Damaged - Held by Me (Not Given to IT)">নষ্ট - আমার কাছে আছে (IT-কে দেওয়া হয়নি)</option>
-        </select>
-      </td>
-      <td><input type="text" id="recRem_${idx}" value="${t.remarks || ''}" style="margin:0;"></td>
-      <td><button class="btn-ok" onclick="saveReconRow(${idx}, '${t.serial}')">Save</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function saveReconRow(idx, serial) {
-  const st = document.getElementById('recStatus_' + idx).value;
-  const rem = document.getElementById('recRem_' + idx).value;
-  google.script.run.withSuccessHandler(function(res) {
-    showToast(res.message);
-    refreshData();
-  }).setReconciliationStatus(serial, st, rem, true);
-}
-
-function toggleCamera() {
-  const readerDiv = document.getElementById('reader');
-  if (readerDiv.style.display === 'block') {
-    if (html5QrCode) html5QrCode.stop().catch(() => {});
-    readerDiv.style.display = 'none';
-    return;
+function checkConflict() {
+  const h = $('editHolder').value.trim();
+  const others = (h && h !== UNASSIGNED)
+    ? APP.tablets.filter(function (t) { return t.serial !== CURRENT && t.nameWithId === h; })
+    : [];
+  if (others.length) {
+    $('conflictBox').style.display = 'block';
+    $('conflictMsg').textContent = h + ' already has Serial: ' + others.map(function (t) { return t.serial; }).join(', ') + '.';
+  } else {
+    $('conflictBox').style.display = 'none';
+    $('forceCheck').checked = false;
   }
-  readerDiv.style.display = 'block';
-  html5QrCode = new Html5Qrcode("reader");
-  html5QrCode.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 220 },
-    function(decodedText) {
-      let ser = decodedText;
-      try {
-        const url = new URL(decodedText);
-        if (url.searchParams.get('serial')) ser = url.searchParams.get('serial');
-      } catch (e) {}
-      html5QrCode.stop().catch(() => {});
-      readerDiv.style.display = 'none';
-      document.getElementById('searchInput').value = ser;
-      loadTabletBySerial(ser);
+  return others;
+}
+
+function auditOkay(btn) {
+  if (!CURRENT) return;
+  return busy(btn, async function () {
+    const r = await apiPost({ action: 'markAudited', serial: CURRENT, remarks: $('auditRemarks').value });
+    toast(r.message);
+    if (r.success) { await refresh(); selectTablet(CURRENT); }
+  });
+}
+
+function saveChange(btn) {
+  if (!CURRENT) return;
+  const h = $('editHolder').value.trim();
+  const cur = currentTablet();
+  const valid = h === UNASSIGNED || (cur && cur.nameWithId === h) ||
+    APP.staff.some(function (s) { return s.nameWithId === h; });
+  if (!valid) { toast('Please pick a person from the list, or type UNASSIGNED.'); return; }
+  const conflicts = checkConflict();
+  const force = $('forceCheck').checked;
+  if (conflicts.length && !force) { toast('This user already has a tablet. Tick Force Update to continue.'); return; }
+  return busy(btn, async function () {
+    const r = await apiPost({
+      action: 'updateAssignment', serial: CURRENT, newHolder: h,
+      newStatus: $('editStatus').value, remarks: $('auditRemarks').value,
+      forceAssign: force, markAudited: true
+    });
+    toast(r.message);
+    if (r.success) { await refresh(); selectTablet(CURRENT); }
+  });
+}
+
+/* ---------- Camera ---------- */
+async function toggleCamera() {
+  if (qrScanner) { await stopCamera(); return; }
+  $('reader').style.display = 'block';
+  qrScanner = new Html5Qrcode('reader');
+  try {
+    await qrScanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 220 }, onScan, function () {});
+  } catch (e) {
+    toast('Camera error: ' + e);
+    await stopCamera();
+  }
+}
+async function stopCamera() {
+  try { if (qrScanner) { await qrScanner.stop(); qrScanner.clear(); } } catch (e) {}
+  qrScanner = null;
+  $('reader').style.display = 'none';
+}
+function onScan(text) {
+  let s = String(text).trim();
+  try {
+    const u = new URL(s);
+    const p = u.searchParams.get('serial');
+    if (p) s = p.trim();
+  } catch (e) {}
+  stopCamera();
+  $('searchInput').value = s;
+  searchNow();
+}
+
+/* ---------- Print QR labels ---------- */
+function renderLabels() {
+  const q = $('labelFilter').value.trim().toLowerCase();
+  const list = APP.tablets.filter(function (t) {
+    return !q || t.serial.toLowerCase().indexOf(q) >= 0 || t.nameWithId.toLowerCase().indexOf(q) >= 0;
+  });
+  const box = $('labelGrid');
+  box.innerHTML = '';
+  $('labelCount').textContent = list.length + ' labels';
+  const base = baseUrl();
+  const token = ++labelToken;
+  let i = 0;
+  function batch() {
+    if (token !== labelToken) return;
+    const end = Math.min(i + 15, list.length);
+    for (; i < end; i++) {
+      const t = list[i];
+      const d = document.createElement('div');
+      d.className = 'label';
+      const qr = document.createElement('div');
+      qr.className = 'qr';
+      const s = document.createElement('div');
+      s.className = 'serial';
+      s.textContent = t.serial;
+      d.appendChild(qr);
+      d.appendChild(s);
+      box.appendChild(d);
+      new QRCode(qr, { text: base + '?serial=' + encodeURIComponent(t.serial), width: 120, height: 120, correctLevel: QRCode.CorrectLevel.M });
     }
-  ).catch(err => showToast('Camera start error: ' + err));
+    if (i < list.length) setTimeout(batch, 10);
+  }
+  batch();
+}
+
+/* ---------- Return & Replace ---------- */
+function onRetPick() {
+  const s = $('retSerial').value.trim();
+  const t = APP.tablets.find(function (x) { return x.serial === s; });
+  $('retInfo').textContent = t ? 'Current user: ' + t.nameWithId + ' | Status: ' + t.status : '';
+}
+function submitReturn(btn) {
+  const s = $('retSerial').value.trim();
+  const t = APP.tablets.find(function (x) { return x.serial === s; });
+  if (!t) { toast('Please pick a valid Serial to return.'); return; }
+  const newSerial = $('retNewSerial').value;
+  if (newSerial && t.nameWithId === UNASSIGNED) { toast('This tablet has no user, so a replacement cannot be assigned.'); return; }
+  if (!confirm('Confirm return of ' + s + (newSerial ? ' and give ' + newSerial + ' to ' + t.nameWithId : '') + '?')) return;
+  return busy(btn, async function () {
+    const r = await apiPost({
+      action: 'returnReplace', oldSerial: s, returnStatus: $('retStatus').value,
+      returnRemarks: $('retRemarks').value, newSerial: newSerial, newHolder: t.nameWithId
+    });
+    toast(r.message);
+    if (r.success) {
+      $('retSerial').value = '';
+      $('retRemarks').value = '';
+      $('retInfo').textContent = '';
+      await refresh();
+    }
+  });
+}
+
+/* ---------- Reconciliation ---------- */
+function reconRow(t, note) {
+  const opts = RECON_OPTIONS.map(function (o) {
+    return '<option value="' + esc(o.v) + '"' + (o.v === t.status ? ' selected' : '') + '>' + esc(o.l) + '</option>';
+  }).join('');
+  return '<tr><td><b>' + esc(t.serial) + '</b>' + (note ? '<div class="hint">' + esc(note) + '</div>' : '') + '</td>' +
+    '<td>' + esc(t.nameWithId) + '</td>' +
+    '<td>' + esc(t.floor || '-') + ' / ' + esc(t.line || '-') + '</td>' +
+    '<td><select>' + opts + '</select></td>' +
+    '<td><input value="' + esc(t.remarks) + '"></td>' +
+    '<td><button class="btn-ok small" data-serial="' + esc(t.serial) + '" onclick="saveRecon(this)">Save</button></td></tr>';
+}
+function renderPending() {
+  const box = $('pendingSection');
+  const rows = [];
+  APP.pendingRecon.forEach(function (p) {
+    const t = APP.tablets.find(function (x) { return x.serial === p.serial; });
+    if (t) rows.push(reconRow(t, 'Flagged (' + p.actionType + '). Conflicts with: ' + p.conflictingSerial));
+  });
+  if (!rows.length) { box.innerHTML = ''; return; }
+  box.innerHTML = '<h4>Flagged for reconciliation (Force Update)</h4><div class="scroll"><table><thead><tr>' +
+    '<th>Serial</th><th>Holder</th><th>Floor / Line</th><th>Status</th><th>Remarks</th><th></th></tr></thead><tbody>' +
+    rows.join('') + '</tbody></table></div>';
+}
+function renderRecon() {
+  const q = $('reconFilter').value.trim().toLowerCase();
+  const list = APP.tablets.filter(function (t) {
+    if (t.auditedThisMonth) return false;
+    return !q || t.serial.toLowerCase().indexOf(q) >= 0 || t.nameWithId.toLowerCase().indexOf(q) >= 0;
+  });
+  const shown = list.slice(0, 100);
+  $('reconBody').innerHTML = shown.map(function (t) { return reconRow(t, ''); }).join('');
+  $('reconHint').textContent = list.length + ' not audited' + (list.length > 100 ? ' (showing first 100 - use the filter)' : '');
+}
+function saveRecon(btn) {
+  const tr = btn.closest('tr');
+  const status = tr.querySelector('select').value;
+  const remarks = tr.querySelector('input').value;
+  return busy(btn, async function () {
+    const r = await apiPost({ action: 'setRecon', serial: btn.dataset.serial, status: status, remarks: remarks, markAudited: true });
+    toast(r.message);
+    if (r.success) await refresh();
+  });
 }
 </script>
 </body>
