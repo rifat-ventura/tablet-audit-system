@@ -43,7 +43,7 @@
   th { background: #f8fafc; }
   #reader { width: 100%; max-width: 360px; margin: 10px auto; display: none; }
   #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 12px 16px; border-radius: 8px; display: none; z-index: 999; max-width: 90%; font-size: 14px; }
-    :root { --qr: 20mm; }
+  :root { --qr: 20mm; }
   @page { size: A4; margin: 8mm; }
   .label-grid { display: flex; flex-wrap: wrap; gap: 2mm; margin-top: 10px; }
   .label { width: calc(var(--qr) + 4mm); border: 1px dashed #94a3b8; padding: 2mm; text-align: center; background: #fff; break-inside: avoid; }
@@ -63,7 +63,6 @@
     body { background: #fff; padding: 0; }
     .noprint { display: none !important; }
     .panel { box-shadow: none; padding: 0; }
-    .label-grid { grid-template-columns: repeat(4, 1fr); }
     .label { break-inside: avoid; }
   }
 </style>
@@ -82,7 +81,7 @@
 <!-- FULL APP -->
 <div id="appView" class="container" style="display:none">
   <div class="noprint">
-  const onlyName = holder.replace(/\s*\([^)]*\)\s*$/, '').trim() || holder;
+    <h3>Tablet Monthly Audit System &nbsp; <a href="dashboard.html" style="font-size:13px">Open Dashboard</a></h3>
     <div class="sub">
       <span id="summary">Loading data...</span>
       <button class="btn-sec small" onclick="doRefresh(this)">Refresh</button>
@@ -129,7 +128,7 @@
     </div>
   </div>
 
-    <!-- PRINT QR LABELS -->
+  <!-- PRINT QR LABELS -->
   <div id="printTab" class="panel">
     <div class="noprint">
       <div class="row">
@@ -161,7 +160,7 @@
     <datalist id="retList"></datalist>
     <div id="retInfo" class="hint"></div>
     <label>Return status</label>
-        <select id="retStatus">
+    <select id="retStatus">
       <option value="No Ok In Hand">No Ok In Hand</option>
       <option value="IT for Repair">IT for Repair</option>
       <option value="Okay In Hand">Okay In Hand</option>
@@ -192,9 +191,9 @@
 <div id="toast"></div>
 
 <script>
-/* ====== SETTINGS: paste your Apps Script /exec URL between the quotes ====== */
+/* ====== SETTINGS: your Apps Script /exec URL ====== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbxlpQp3uanUalZX6FGBYYpbYITFbzjCgBU1Y3HlR3Prhlbtlz4K3_dZMVQ-cdXXprLujA/exec';
-/* ========================================================================== */
+/* ================================================== */
 
 const UNASSIGNED = 'UNASSIGNED';
 const STATUS_LIST = ['Running', 'Okay In Hand', 'No Ok In Hand', 'IT for Repair'];
@@ -286,7 +285,7 @@ async function showPublic() {
       $('publicBody').innerHTML = '<p>Serial <b>' + esc(serialParam) + '</b> was not found.</p>';
       return;
     }
-        const prow = function (k, v) {
+    const prow = function (k, v) {
       return '<div class="prow"><span class="plabel">' + k + '</span><span class="pval">' + esc(v || '-') + '</span></div>';
     };
     $('publicBody').innerHTML =
@@ -490,6 +489,7 @@ function onScan(text) {
   searchNow();
 }
 
+/* ---------- Print QR labels ---------- */
 const SELECTED = new Set();
 
 function matchesFilter(t, q) {
