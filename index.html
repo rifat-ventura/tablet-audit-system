@@ -82,7 +82,7 @@
 <!-- FULL APP -->
 <div id="appView" class="container" style="display:none">
   <div class="noprint">
-    <h3>Tablet Monthly Audit System</h3>
+  const onlyName = holder.replace(/\s*\([^)]*\)\s*$/, '').trim() || holder;
     <div class="sub">
       <span id="summary">Loading data...</span>
       <button class="btn-sec small" onclick="doRefresh(this)">Refresh</button>
@@ -290,7 +290,7 @@ async function showPublic() {
       return '<div class="prow"><span class="plabel">' + k + '</span><span class="pval">' + esc(v || '-') + '</span></div>';
     };
     $('publicBody').innerHTML =
-      prow('Name with ID', r.nameWithId) + prow('Name', r.name) + prow('Floor', r.floor) +
+      prow('Employee Name', r.name) + prow('Employee ID', r.employeeId) + prow('Floor', r.floor) +
       prow('Line', r.line) + prow('Serial', r.serial) + prow('Tab Size', r.tabSize);
   } catch (e) {
     $('publicBody').innerHTML = '<p>Could not load information. Please check your internet and reload.</p>';
