@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tablet Asset Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--ink:#0f172a;--mut:#64748b;--line:#e2e8f0;--bg:#eef2f7;--p:#4f46e5}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,"Segoe UI",Roboto,Arial,sans-serif}
+header{background:linear-gradient(120deg,#0b1220,#2e2a7a 55%,#0e7490);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:10;box-shadow:0 4px 16px rgba(11,18,32,.3)}
+.logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#06b6d4);display:grid;place-items:center}
+.logo svg,.ic svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+header h1{font-size:19px;margin:0;letter-spacing:.2px}header small{opacity:.75;font-size:12px}
+.sp{flex:1}
+.hb{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:8px;padding:8px 13px;font-weight:600;cursor:pointer;text-decoration:none;font-size:13px}
+.hb:hover{background:rgba(255,255,255,.26)}
+main{max-width:1320px;margin:0 auto;padding:18px}
+.card{background:#fff;border-radius:14px;padding:16px;border:1px solid var(--line);box-shadow:0 1px 2px rgba(15,23,42,.06)}
+.card h3{margin:0 0 10px;font-size:14.5px;color:#1e293b;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.fil{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;align-items:end;margin-bottom:16px;border-top:4px solid var(--p)}
+.fil label{font-size:12px;font-weight:600;color:var(--mut)}
+select,input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;margin-top:3px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:16px}
+.kpi{display:flex;gap:12px;align-items:center}
+.ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex:none}
+.kpi b{font-size:25px;display:block;line-height:1.1}.kpi span{font-size:12.5px;color:var(--mut)}
+.g{display:grid;gap:14px;margin-bottom:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.ch{position:relative;height:280px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:#f1f5f9;color:#334155;text-align:left;position:sticky;top:0;z-index:1}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.sc{overflow:auto;max-height:440px}
+.pill{padding:2px 10px;border-radius:99px;font-size:11.5px;font-weight:700;color:#fff}
+.tabs{display:flex;gap:6px}
+.tb{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;font-weight:700;cursor:pointer}
+.tb.on{background:var(--p);color:#fff;border-color:var(--p)}
+.btn{background:var(--p);color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer}
+.btn.s{background:#e2e8f0;color:var(--ink)}
+.c{text-align:center}
+#err{color:#b91c1c;font-weight:600;margin-bottom:10px}
+</style></head><body>
+<header>
+<div class="logo"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>
+<div><h1>Tablet Asset Dashboard</h1><small id="sub">Loading data...</small></div><span class="sp"></span>
+<a class="hb" href="index.html">Open audit app</a><button class="hb" onclick="load()">Refresh</button>
+</header>
+<main>
+<div id="err"></div>
+<div class="card fil" id="fil"></div>
+<div class="kpis" id="kpis"></div>
+<div class="g g2"><div class="card"><h3>Tablets by floor and position</h3><div class="ch"><canvas id="c1"></canvas></div></div>
+<div class="card"><h3>Status overview</h3><div class="ch"><canvas id="c2"></canvas></div></div></div>
+<div class="g g3"><div class="card"><h3>Tab size</h3><div class="ch"><canvas id="c3"></canvas></div></div>
+<div class="card"><h3>Service duration (years)</h3><div class="ch"><canvas id="c4"></canvas></div></div>
+<div class="card"><h3>Purchase year</h3><div class="ch"><canvas id="c5"></canvas></div></div></div>
+<div class="g g2"><div class="card"><h3>Audit progress by floor</h3><div class="ch"><canvas id="c6"></canvas></div></div>
+<div class="card"><h3>Audit completion</h3><div class="ch"><canvas id="c7"></canvas></div></div></div>
+<div class="g g2"><div class="card"><h3>Floor and position summary</h3><div class="sc" id="pv1"></div></div>
+<div class="card"><h3>Status and tab size summary</h3><div class="sc" id="pv2"></div></div></div>
+<div class="card" style="margin-bottom:16px"><h3>Audit list
+<span class="tabs"><button class="tb" id="ty" onclick="AUD='y';render()">Audited</button><button class="tb on" id="tn" onclick="AUD='n';render()">Not audited</button></span></h3>
+<div class="sc" id="al"></div></div>
+<div class="card"><h3><span>Master view <small id="mc" style="color:var(--mut);font-weight:400"></small></span>
+<span><button class="btn s" id="more" onclick="ALLP=!ALLP;render()"></button> <button class="btn" onclick="csv()">Export CSV (Excel)</button></span></h3>
+<div class="sc" id="mt"></div></div>
+</main>
+<script>
+const API_URL='https://script.google.com/macros/s/AKfycbxlpQp3uanUalZX6FGBYYpbYITFbzjCgBU1Y3HlR3Prhlbtlz4K3_dZMVQ-cdXXprLujA/exec';
+const ST={'Running':'#10b981','Okay In Hand':'#3b82f6','No Ok In Hand':'#ef4444','IT for Repair':'#f59e0b'};
+const PAL=['#4f46e5','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#64748b'];
+const IC={tablet:'<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M12 18h.01"/>',ok:'<path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"/><path d="M22 4 12 14l-3-3"/>',clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',run:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',box:'<path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/>',warn:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/>',tool:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>'};
+const FD=[['fl','Floor'],['ln','Line'],['po','Position'],['status','Status'],['sz','Tab size'],['du','Service duration'],['py','Purchase year']];
+const COLS=[['Floor','floor'],['Line','line'],['Serial','serial'],['Name with ID','nameWithId'],['Position','position'],['Status','status'],['Tab Size','tabSize'],['Purchase Date','purchaseDate'],['Service Length','serviceLength'],['Service Duration','serviceDuration'],['Audit Month','auditMonth'],['Audit','au']];
+const BAD=['Unknown','N/A','Unassigned'];
+let RAW=[],MONTH='',CUR=[],CH={},AUD='n',ALLP=false;
+const $=id=>document.getElementById(id);
+const E=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const srt=(a,b)=>(BAD.includes(a)-BAD.includes(b))||String(a).localeCompare(String(b),undefined,{numeric:true});
+const cnt=(R,fn)=>{const m={};R.forEach(r=>{const k=fn(r);m[k]=(m[k]||0)+1});return m};
+const keys=m=>Object.keys(m).sort(srt);
+const pc=(a,b)=>b?Math.round(a*100/b):0;
+Chart.defaults.font.family='Inter,"Segoe UI",Arial,sans-serif';Chart.defaults.color='#475569';
+Chart.register({id:'centerText',afterDraw(c,a,o){if(!o||o.text==null)return;const x=(c.chartArea.left+c.chartArea.right)/2,y=(c.chartArea.top+c.chartArea.bottom)/2,t=c.ctx;t.save();t.textAlign='center';t.textBaseline='middle';t.fillStyle='#0f172a';t.font='700 26px Inter,Arial';t.fillText(o.text,x,y-8);t.fillStyle='#64748b';t.font='500 12px Inter,Arial';t.fillText(o.sub||'',x,y+14);t.restore()}});
+const fb=(v,t)=>v||(t.nameWithId==='UNASSIGNED'?'Unassigned':'N/A');
+function prep(t,m){return Object.assign({},t,{fl:fb(t.floor,t),ln:fb(t.line,t),po:fb(t.position,t),sz:t.tabSize||'Unknown',du:t.serviceDuration||'Unknown',py:(String(t.purchaseDate).match(/(19|20)\d\d/)||['Unknown'])[0],au:!!t.auditMonth&&t.auditMonth===m})}
+function ui(){$('fil').innerHTML=FD.map(([k,n])=>`<div><label>${n}</label><select id="f_${k}"></select></div>`).join('')+'<div><label>Audit month</label><select id="f_m"></select></div><div><label>Audit status</label><select id="f_a"><option value="">All</option><option value="y">Audited</option><option value="n">Not audited</option></select></div><div><label>Search</label><input id="f_q" placeholder="Serial or name"></div><div><button class="btn s" onclick="rst()">Reset filters</button></div>';$('fil').onchange=render;$('f_q').oninput=render}
+function build(){const P=RAW.map(t=>prep(t,MONTH));FD.forEach(([k])=>{$('f_'+k).innerHTML='<option value="">All</option>'+[...new Set(P.map(r=>r[k]))].sort(srt).map(v=>`<option>${E(v)}</option>`).join('')});
+const ms=[...new Set([MONTH,...RAW.map(t=>t.auditMonth).filter(Boolean)])].sort().reverse();$('f_m').innerHTML=ms.map(v=>`<option>${E(v)}</option>`).join('');$('f_m').value=MONTH}
+function rst(){FD.forEach(([k])=>$('f_'+k).value='');$('f_a').value='';$('f_q').value='';$('f_m').value=MONTH;render()}
+function chart(id,type,labels,sets,o){o=o||{};if(CH[id])CH[id].destroy();const d=type==='doughnut';
+CH[id]=new Chart($(id),{type,data:{labels,datasets:sets},options:Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:sets.length>1||d,position:'bottom',labels:{boxWidth:10,usePointStyle:true}},centerText:o.center},scales:d?{}:{x:{stacked:!!o.stack,grid:{display:false}},y:{stacked:!!o.stack,beginAtZero:true,ticks:{precision:0}}}},d?{cutout:'66%'}:{})})}
+const bar=(l,d,c)=>({label:l,data:d,backgroundColor:c,borderRadius:5});
+function pv(R,rf,cf){const rl=keys(cnt(R,rf)),cl=keys(cnt(R,cf)),M={};R.forEach(r=>{const k=rf(r)+'|'+cf(r);M[k]=(M[k]||0)+1});const mx=Math.max(1,...Object.values(M));
+let h='<table><tr><th></th>'+cl.map(c=>`<th class="c">${E(c)}</th>`).join('')+'<th class="c">Total</th></tr>';
+rl.forEach(a=>{let t=0;h+=`<tr><th>${E(a)}</th>`+cl.map(c=>{const v=M[a+'|'+c]||0;t+=v;return `<td class="c" style="background:rgba(79,70,229,${(v/mx*.4).toFixed(2)})">${v||''}</td>`}).join('')+`<td class="c"><b>${t}</b></td></tr>`});
+return h+'<tr><th>Total</th>'+cl.map(c=>`<td class="c"><b>${R.filter(r=>cf(r)===c).length}</b></td>`).join('')+`<td class="c"><b>${R.length}</b></td></tr></table>`}
+function cell(r,k){if(k==='status')return `<span class="pill" style="background:${ST[r.status]||'#64748b'}">${E(r.status)}</span>`;if(k==='au')return `<span class="pill" style="background:${r.au?'#10b981':'#f59e0b'}">${r.au?'Audited':'Pending'}</span>`;return E(r[k])}
+const tbl=(rows,cols)=>rows.length?'<table><tr>'+cols.map(c=>`<th>${c[0]}</th>`).join('')+'</tr>'+rows.map(r=>'<tr>'+cols.map(c=>`<td>${cell(r,c[1])}</td>`).join('')+'</tr>').join('')+'</table>':'<p style="padding:10px;color:#64748b">No tablets match the current filters.</p>';
+function render(){
+const m=$('f_m').value||MONTH,P=RAW.map(t=>prep(t,m)),f={};FD.forEach(([k])=>f[k]=$('f_'+k).value);
+const a=$('f_a').value,q=$('f_q').value.trim().toLowerCase();
+const R=CUR=P.filter(r=>FD.every(([k])=>!f[k]||r[k]===f[k])&&(!a||(a==='y')===r.au)&&(!q||(r.serial+' '+r.nameWithId).toLowerCase().includes(q)));
+const au=R.filter(r=>r.au).length,S=cnt(R,r=>r.status);
+$('sub').textContent='Audit month '+m+' | showing '+R.length+' of '+RAW.length+' tablets';
+const K=[['Total tablets',R.length,'tablet','#4f46e5'],['Audited',au+' ('+pc(au,R.length)+'%)','ok','#10b981'],['Not audited',R.length-au,'clock','#f59e0b'],['Running',S['Running']||0,'run','#0d9488'],['Okay in hand',S['Okay In Hand']||0,'box','#3b82f6'],['No ok in hand',S['No Ok In Hand']||0,'warn','#ef4444'],['IT for repair',S['IT for Repair']||0,'tool','#d97706']];
+$('kpis').innerHTML=K.map(k=>`<div class="card kpi"><div class="ic" style="background:${k[3]}"><svg viewBox="0 0 24 24">${IC[k[2]]}</svg></div><div><b>${k[1]}</b><span>${k[0]}</span></div></div>`).join('');
+const fl=keys(cnt(R,r=>r.fl)),po=keys(cnt(R,r=>r.po));
+chart('c1','bar',fl,po.map((p,i)=>bar(p,fl.map(x=>R.filter(r=>r.fl===x&&r.po===p).length),PAL[i%10])),{stack:1});
+const sl=[...Object.keys(ST),...Object.keys(S).filter(k=>!ST[k])].filter(k=>S[k]);
+chart('c2','doughnut',sl,[{data:sl.map(k=>S[k]),backgroundColor:sl.map((k,i)=>ST[k]||PAL[i]),borderWidth:2}],{center:{text:R.length,sub:'tablets'}});
+const Z=cnt(R,r=>r.sz),zl=keys(Z);chart('c3','doughnut',zl,[{data:zl.map(k=>Z[k]),backgroundColor:zl.map((k,i)=>PAL[i%10]),borderWidth:2}],{center:{text:zl.length,sub:'sizes'}});
+const D=cnt(R,r=>r.du),dl=keys(D);chart('c4','bar',dl,[bar('Tablets',dl.map(k=>D[k]),'#06b6d4')]);
+const Y=cnt(R,r=>r.py),yl=keys(Y);chart('c5','bar',yl,[bar('Tablets',yl.map(k=>Y[k]),'#8b5cf6')]);
+chart('c6','bar',fl,[bar('Audited',fl.map(x=>R.filter(r=>r.fl===x&&r.au).length),'#10b981'),bar('Not audited',fl.map(x=>R.filter(r=>r.fl===x&&!r.au).length),'#f59e0b')],{stack:1});
+chart('c7','doughnut',['Audited','Not audited'],[{data:[au,R.length-au],backgroundColor:['#10b981','#f59e0b'],borderWidth:2}],{center:{text:pc(au,R.length)+'%',sub:'audited'}});
+$('pv1').innerHTML=pv(R,r=>r.fl,r=>r.po);$('pv2').innerHTML=pv(R,r=>r.status,r=>r.sz);
+$('ty').textContent='Audited ('+au+')';$('tn').textContent='Not audited ('+(R.length-au)+')';$('ty').className='tb'+(AUD==='y'?' on':'');$('tn').className='tb'+(AUD==='n'?' on':'');
+$('al').innerHTML=tbl(R.filter(r=>r.au===(AUD==='y')).sort((x,y)=>srt(x.fl,y.fl)||srt(x.ln,y.ln)),[['Serial','serial'],['Name with ID','nameWithId'],['Floor','floor'],['Line','line'],['Position','position'],['Status','status'],['Last audit','lastAuditDate']]);
+$('mt').innerHTML=tbl(ALLP?R:R.slice(0,50),COLS);$('mc').textContent=R.length+' rows';$('more').style.display=R.length>50?'':'none';$('more').textContent=ALLP?'Show first 50':'Show all '+R.length}
+function csv(){const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';const L=[COLS.map(c=>q(c[0])).join(',')];
+CUR.forEach(r=>L.push(COLS.map(c=>c[1]==='serial'?'="'+r.serial+'"':q(c[1]==='au'?(r.au?'Audited':'Not audited'):r[c[1]])).join(',')));
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+L.join('\r\n')],{type:'text/csv;charset=utf-8'}));a.download='Tablet_Master_View_'+new Date().toISOString().slice(0,10)+'.csv';a.click()}
+async function load(){$('err').textContent='';
+for(let i=0;i<3;i++){try{const r=await(await fetch(API_URL+'?action=bootstrap')).json();if(!r.success)throw new Error(r.message);RAW=r.data.tablets;MONTH=r.data.monthKey;ui();build();render();return}catch(e){if(i==2)$('err').textContent='Could not load data: '+(e.message||e);else await new Promise(r=>setTimeout(r,800))}}}
+load();
+</script></body></html>
