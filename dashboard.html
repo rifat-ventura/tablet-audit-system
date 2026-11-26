@@ -82,6 +82,11 @@ const keys=m=>Object.keys(m).sort(srt);
 const pc=(a,b)=>b?Math.round(a*100/b):0;
 Chart.defaults.font.family='Inter,"Segoe UI",Arial,sans-serif';Chart.defaults.color='#475569';
 Chart.register({id:'centerText',afterDraw(c,a,o){if(!o||o.text==null)return;const x=(c.chartArea.left+c.chartArea.right)/2,y=(c.chartArea.top+c.chartArea.bottom)/2,t=c.ctx;t.save();t.textAlign='center';t.textBaseline='middle';t.fillStyle='#0f172a';t.font='700 26px Inter,Arial';t.fillText(o.text,x,y-8);t.fillStyle='#64748b';t.font='500 12px Inter,Arial';t.fillText(o.sub||'',x,y+14);t.restore()}});
+Chart.register({id:'valueLabels',afterDatasetsDraw(c){const t=c.ctx,dn=c.config.type==='doughnut',sx=c.options.scales&&c.options.scales.x,stk=!!(sx&&sx.stacked);t.save();t.font='600 11px Inter,Arial';t.textAlign='center';
+c.data.datasets.forEach((ds,di)=>{if(!c.isDatasetVisible(di))return;c.getDatasetMeta(di).data.forEach((el,i)=>{const v=ds.data[i];if(!v)return;
+if(dn){if(el.endAngle-el.startAngle<.25)return;const p=el.tooltipPosition();t.fillStyle='#fff';t.textBaseline='middle';t.fillText(v,p.x,p.y)}
+else if(stk){if(Math.abs(el.base-el.y)<14)return;t.fillStyle='#fff';t.textBaseline='middle';t.fillText(v,el.x,(el.y+el.base)/2)}
+else{t.fillStyle='#334155';t.textBaseline='bottom';t.fillText(v,el.x,el.y-3)}})});t.restore()}});
 const fb=(v,t)=>v||(t.nameWithId==='UNASSIGNED'?'Unassigned':'N/A');
 function prep(t,m){return Object.assign({},t,{fl:fb(t.floor,t),ln:fb(t.line,t),po:fb(t.position,t),sz:t.tabSize||'Unknown',du:t.serviceDuration||'Unknown',py:(String(t.purchaseDate).match(/(19|20)\d\d/)||['Unknown'])[0],au:!!t.auditMonth&&t.auditMonth===m})}
 function ui(){$('fil').innerHTML=FD.map(([k,n])=>`<div><label>${n}</label><select id="f_${k}"></select></div>`).join('')+'<div><label>Audit month</label><select id="f_m"></select></div><div><label>Audit status</label><select id="f_a"><option value="">All</option><option value="y">Audited</option><option value="n">Not audited</option></select></div><div><label>Search</label><input id="f_q" placeholder="Serial or name"></div><div><button class="btn s" onclick="rst()">Reset filters</button></div>';$('fil').onchange=render;$('f_q').oninput=render}
@@ -89,7 +94,7 @@ function build(){const P=RAW.map(t=>prep(t,MONTH));FD.forEach(([k])=>{$('f_'+k).
 const ms=[...new Set([MONTH,...RAW.map(t=>t.auditMonth).filter(Boolean)])].sort().reverse();$('f_m').innerHTML=ms.map(v=>`<option>${E(v)}</option>`).join('');$('f_m').value=MONTH}
 function rst(){FD.forEach(([k])=>$('f_'+k).value='');$('f_a').value='';$('f_q').value='';$('f_m').value=MONTH;render()}
 function chart(id,type,labels,sets,o){o=o||{};if(CH[id])CH[id].destroy();const d=type==='doughnut';
-CH[id]=new Chart($(id),{type,data:{labels,datasets:sets},options:Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:sets.length>1||d,position:'bottom',labels:{boxWidth:10,usePointStyle:true}},centerText:o.center},scales:d?{}:{x:{stacked:!!o.stack,grid:{display:false}},y:{stacked:!!o.stack,beginAtZero:true,ticks:{precision:0}}}},d?{cutout:'66%'}:{})})}
+CH[id]=new Chart($(id),{type,data:{labels,datasets:sets},options:Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:sets.length>1||d,position:'bottom',labels:{boxWidth:10,usePointStyle:true}},centerText:o.center},scales:d?{}:{x:{stacked:!!o.stack,grid:{display:false}},y:{stacked:!!o.stack,beginAtZero:true,grace:'12%',ticks:{precision:0}}}},d?{cutout:'66%'}:{})})}
 const bar=(l,d,c)=>({label:l,data:d,backgroundColor:c,borderRadius:5});
 function pv(R,rf,cf){const rl=keys(cnt(R,rf)),cl=keys(cnt(R,cf)),M={};R.forEach(r=>{const k=rf(r)+'|'+cf(r);M[k]=(M[k]||0)+1});const mx=Math.max(1,...Object.values(M));
 let h='<table><tr><th></th>'+cl.map(c=>`<th class="c">${E(c)}</th>`).join('')+'<th class="c">Total</th></tr>';
@@ -103,7 +108,7 @@ const a=$('f_a').value,q=$('f_q').value.trim().toLowerCase();
 const R=CUR=P.filter(r=>FD.every(([k])=>!f[k]||r[k]===f[k])&&(!a||(a==='y')===r.au)&&(!q||(r.serial+' '+r.nameWithId).toLowerCase().includes(q)));
 const au=R.filter(r=>r.au).length,S=cnt(R,r=>r.status);
 $('sub').textContent='Audit month '+m+' | showing '+R.length+' of '+RAW.length+' tablets';
-const K=[['Total tablets',R.length,'tablet','#4f46e5'],['Audited',au+' ('+pc(au,R.length)+'%)','ok','#10b981'],['Not audited',R.length-au,'clock','#f59e0b'],['Running',S['Running']||0,'run','#0d9488'],['Okay in hand',S['Okay In Hand']||0,'box','#3b82f6'],['No ok in hand',S['No Ok In Hand']||0,'warn','#ef4444'],['IT for repair',S['IT for Repair']||0,'tool','#d97706']];
+const K=[['Total tablets',R.length,'tablet','#4f46e5'],['Audited',au,'ok','#10b981'],['Not audited',R.length-au,'clock','#f59e0b'],['Running',S['Running']||0,'run','#0d9488'],['Okay in hand',S['Okay In Hand']||0,'box','#3b82f6'],['No ok in hand',S['No Ok In Hand']||0,'warn','#ef4444'],['IT for repair',S['IT for Repair']||0,'tool','#d97706']];
 $('kpis').innerHTML=K.map(k=>`<div class="card kpi"><div class="ic" style="background:${k[3]}"><svg viewBox="0 0 24 24">${IC[k[2]]}</svg></div><div><b>${k[1]}</b><span>${k[0]}</span></div></div>`).join('');
 const fl=keys(cnt(R,r=>r.fl)),po=keys(cnt(R,r=>r.po));
 chart('c1','bar',fl,po.map((p,i)=>bar(p,fl.map(x=>R.filter(r=>r.fl===x&&r.po===p).length),PAL[i%10])),{stack:1});
